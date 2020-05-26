@@ -1,15 +1,18 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
 const db_name = "hostel.sqlite3";
 let database = null;
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+app.use(express.static("client/build"))
 
 // Get empty apartments with class
 // and capacity params
@@ -508,6 +511,10 @@ app.post("/remove", (req, res) => {
   // Close database
   database.close();
 });
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'))
+})
 
 server = app.listen(port, () => {
   console.log(`Listening on port ${port}.`);

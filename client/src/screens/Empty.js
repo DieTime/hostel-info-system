@@ -62,7 +62,7 @@ class Empty extends React.Component {
         title: "Животные",
         dataIndex: "animals",
         key: "animals",
-        render: val => (
+        render: (val) => (
           <Tag color={val === 0 ? "red" : "green"}>
             {val === 0 ? "Нет" : "Да"}
           </Tag>
@@ -72,7 +72,7 @@ class Empty extends React.Component {
         title: "Кандиционер",
         dataIndex: "candidate",
         key: "candidate",
-        render: val => (
+        render: (val) => (
           <Tag color={val === 0 ? "red" : "green"}>
             {val === 0 ? "Нет" : "Да"}
           </Tag>

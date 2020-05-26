@@ -1,10 +1,13 @@
 {
     "name": "hostel-info-system-server",
     "version": "1.0.0",
+    "main": "server.js",
     "scripts": {
         "client": "cd client && yarn start",
         "server": "nodemon server.js",
-        "dev": "concurrently --kill-others-on-fail \"yarn server\" \"yarn client\""
+        "dev": "concurrently --kill-others-on-fail \"yarn server\" \"yarn client\"",
+        "start": "node server.js",
+        "heroku-postbuild": "cd client && yarn && yarn run build"
     },
     "dependencies": {
         "body-parser": "^1.18.3",
