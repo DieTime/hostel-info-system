@@ -12,7 +12,7 @@ const port = process.env.PORT || 5000;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.use(express.static("client/build"))
+app.use(express.static("client/build"));
 
 // Get empty apartments with class
 // and capacity params
@@ -20,7 +20,7 @@ app.get("/empty/:class/:cap", (req, res) => {
   // Open database
   database = new sqlite3.Database(db_name);
 
-  const cl = req.params["class"] !== 'null' ? `'${req.params["class"]}'` : null
+  const cl = req.params["class"] !== "null" ? `'${req.params["class"]}'` : null;
   const cap = req.params["cap"];
 
   const sql = `SELECT * FROM
@@ -136,15 +136,19 @@ app.get("/empty/:from/:to/:cap", (req, res) => {
                GROUP BY id HAVING (in_range IS NULL OR in_range = 1)`;
 
   // Send sql query with params []
-  database.all(sql, [req.params["to"], req.params["from"], req.params["cap"]], (err, rows) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return err;
-    }
+  database.all(
+    sql,
+    [req.params["to"], req.params["from"], req.params["cap"]],
+    (err, rows) => {
+      if (err) {
+        res.status(400).json({ error: err.message });
+        return err;
+      }
 
-    // Send table if success
-    res.json({ data: rows });
-  });
+      // Send table if success
+      res.json({ data: rows });
+    }
+  );
 
   // Close database
   database.close();
@@ -181,7 +185,7 @@ app.get("/guests", (req, res) => {
                      c.name, c.surname, c.patronym, c.passport,
                      o.start_date, o.end_date,
                      Cast((julianDay(o.end_date) - JulianDay(o.start_date)) As Integer) * a.day_price as number_price,
-                     sum(os.count * s.price) as service_price
+                     COALESCE(sum(os.count * s.price), 0) as service_price
                   from orders o
                      left join clients c on o.client_id = c.id
                      left join apartments a on o.apartments_id = a.id
@@ -212,7 +216,7 @@ app.get("/today_tomorrow", (req, res) => {
   const sql = `SELECT a.id, a.number, a.capacity, a.class, a.day_price, a.animals, a.candidate,
                       a.heating, CAST(julianday(o.end_date) - julianday(date('now')) as INTEGER) as delta
                FROM apartments a LEFT JOIN orders o ON a.id = o.apartments_id
-               WHERE o.apartments_id IS NOT NULL AND (delta == 1 OR delta == 0)`
+               WHERE o.apartments_id IS NOT NULL AND (delta == 1 OR delta == 0)`;
 
   // Send sql query with params []
   database.all(sql, [], (err, rows) => {
@@ -237,7 +241,7 @@ app.get("/info/:order_id", (req, res) => {
                    LEFT JOIN  order_service os ON orders.id = os.order_id 
                    LEFT JOIN service s ON os.service_id = s.id
                WHERE orders.id=? 
-               ORDER BY service_id, date`
+               ORDER BY service_id, date`;
 
   // Send sql query with params []
   database.all(sql, [req.params["order_id"]], (err, rows) => {
@@ -263,7 +267,7 @@ app.get("/reservation", (req, res) => {
                      c.name, c.surname, c.patronym, c.passport,
                      o.start_date, o.end_date,
                      Cast((julianDay(o.end_date) - JulianDay(o.start_date)) As Integer) * a.day_price as number_price,
-                     sum(os.count * s.price) as service_price
+                     COALESCE(sum(os.count * s.price), 0) as service_price
                   from orders o
                      left join clients c on o.client_id = c.id
                      left join apartments a on o.apartments_id = a.id
@@ -298,7 +302,7 @@ app.get("/reservation/:name/:surname/:patronym", (req, res) => {
                      c.name, c.surname, c.patronym, c.passport,
                      o.start_date, o.end_date,
                      Cast((julianDay(o.end_date) - JulianDay(o.start_date)) As Integer) * a.day_price as number_price,
-                     sum(os.count * s.price) as service_price
+                     COALESCE(sum(os.count * s.price), 0) as service_price
                   from orders o
                      left join clients c on o.client_id = c.id
                      left join apartments a on o.apartments_id = a.id
@@ -309,13 +313,17 @@ app.get("/reservation/:name/:surname/:patronym", (req, res) => {
                )`;
 
   // Send sql query with params []
-  database.all(sql, [req.params["name"], req.params["surname"], req.params["patronym"]], (err, rows) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return err;
+  database.all(
+    sql,
+    [req.params["name"], req.params["surname"], req.params["patronym"]],
+    (err, rows) => {
+      if (err) {
+        res.status(400).json({ error: err.message });
+        return err;
+      }
+      res.json({ data: rows });
     }
-    res.json({ data: rows });
-  });
+  );
 
   // Close database
   database.close();
@@ -370,8 +378,8 @@ app.post("/create", (req, res) => {
 
   // Add client
   let c = req.body.client;
-  let sql = `INSERT INTO clients (name, surname, patronym, passport) VALUES(?,?,?,?)`
-  database.run(sql, [c.name, c.surname, c.patronym, c.passport], (err) => {
+  let sql = `INSERT INTO clients (name, surname, patronym, passport) VALUES(?,?,?,?)`;
+  database.run(sql, [c.name, c.surname, c.patronym, c.passport], err => {
     if (err) {
       res.status(500).json({ error: err.message });
       return err;
@@ -379,7 +387,9 @@ app.post("/create", (req, res) => {
 
     // After adding client get last client id
     database.get(
-      `SELECT clients.id FROM clients ORDER BY id DESC`, [], (err, row) => {
+      `SELECT clients.id FROM clients ORDER BY id DESC`,
+      [],
+      (err, row) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return err;
@@ -391,49 +401,65 @@ app.post("/create", (req, res) => {
         let o = req.body.order;
         sql = `INSERT INTO orders (apartments_id, client_id, persons, start_date, end_date)
                VALUES(?,?,?,?,?)`;
-        database.run(sql, [o.a_id, c_id, o.persons, o.dates[0], o.dates[1]], (err) => {
-          if (err) {
-            res.status(500).json({ error: err.message });
-            return err;
-          }
-
-          // After adding order get last order id
-          database.get(`SELECT orders.id FROM orders ORDER BY id DESC`, [], (err, row) => {
+        database.run(
+          sql,
+          [o.a_id, c_id, o.persons, o.dates[0], o.dates[1]],
+          err => {
             if (err) {
               res.status(500).json({ error: err.message });
               return err;
             }
-            // Last order id
-            let o_id = row.id;
 
-            // After getting order id add services in order_service table
-            let s = req.body.services;
-            s.map((item, index) => {
-
-              // If client select service
-              if (item.state && item.dates.length > 0) {
-                let start = new Date(item.dates[0]); // Start date
-                let end = new Date(item.dates[1]); // End date
-
-                // Add all days with this service in order_service table
-                while (start <= end) {
-                  sql = `INSERT INTO order_service (order_id, service_id, count, date) VALUES(?,?,?,?)`;
-                  database.run(sql, [o_id, index + 1, item.num, start.toISOString().slice(0, 10)], (err) => {
-                    if (err) {
-                      res.status(500).json({ error: err.message });
-                      return err;
-                    }
-                  });
-                  // Increment date
-                  start.setDate(start.getDate() + 1);
+            // After adding order get last order id
+            database.get(
+              `SELECT orders.id FROM orders ORDER BY id DESC`,
+              [],
+              (err, row) => {
+                if (err) {
+                  res.status(500).json({ error: err.message });
+                  return err;
                 }
-              }
-            });
+                // Last order id
+                let o_id = row.id;
 
-            // Send success if all field entered
-            res.status(200).send({ result: "ok" });
-          });
-        });
+                // After getting order id add services in order_service table
+                let s = req.body.services;
+                s.map((item, index) => {
+                  // If client select service
+                  if (item.state && item.dates.length > 0) {
+                    let start = new Date(item.dates[0]); // Start date
+                    let end = new Date(item.dates[1]); // End date
+
+                    // Add all days with this service in order_service table
+                    while (start <= end) {
+                      sql = `INSERT INTO order_service (order_id, service_id, count, date) VALUES(?,?,?,?)`;
+                      database.run(
+                        sql,
+                        [
+                          o_id,
+                          index + 1,
+                          item.num,
+                          start.toISOString().slice(0, 10)
+                        ],
+                        err => {
+                          if (err) {
+                            res.status(500).json({ error: err.message });
+                            return err;
+                          }
+                        }
+                      );
+                      // Increment date
+                      start.setDate(start.getDate() + 1);
+                    }
+                  }
+                });
+
+                // Send success if all field entered
+                res.status(200).send({ result: "ok" });
+              }
+            );
+          }
+        );
       }
     );
   });
@@ -450,16 +476,28 @@ app.post("/add/archive", (req, res) => {
   // Add field
   let d = req.body.data;
   let sql = `INSERT INTO archive (name, surname, patronym, number, start_date, end_date, price)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`
+             VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
-  database.run(sql, [d.name, d.surname, d.patronym, d.number, d.start_date, d.end_date, d.price], (err) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return err;
+  database.run(
+    sql,
+    [
+      d.name,
+      d.surname,
+      d.patronym,
+      d.number,
+      d.start_date,
+      d.end_date,
+      d.price
+    ],
+    err => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return err;
+      }
+      // Send success if all field entered
+      res.status(200).send({ result: "ok" });
     }
-    // Send success if all field entered
-    res.status(200).send({ result: "ok" });
-  })
+  );
 
   // Close database
   database.close();
@@ -472,55 +510,68 @@ app.post("/remove", (req, res) => {
 
   // Add field
   let d = req.body;
-  let sql = `DELETE FROM orders WHERE orders.id=?`
-  database.run(sql, [d.id], (err) => {
+  let sql = `DELETE FROM orders WHERE orders.id=?`;
+  database.run(sql, [d.id], err => {
     if (err) {
       res.status(500).json({ error: err.message });
       return err;
     }
 
-    sql = `DELETE FROM order_service WHERE order_id=?`
-    database.run(sql, [d.id], (err) => {
+    sql = `DELETE FROM order_service WHERE order_id=?`;
+    database.run(sql, [d.id], err => {
       if (err) {
         res.status(500).json({ error: err.message });
         return err;
       }
 
-      sql = `DELETE FROM clients WHERE id=?`
-      database.run(sql, [d.client_id], (err) => {
+      sql = `DELETE FROM clients WHERE id=?`;
+      database.run(sql, [d.client_id], err => {
         if (err) {
-          res.status(500).json({error: err.message});
+          res.status(500).json({ error: err.message });
           return err;
         }
 
-        sql = `INSERT INTO archive (name, surname, patronym, passport, number, start_date, end_date, price)
-               VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
-        database.run(sql, [d.name, d.surname, d.patronym, d.passport, d.number, d.start_date, d.end_date, d.total], (err) => {
-          if (err) {
-            res.status(500).json({error: err.message});
-            return err;
-          }
+        if (new Date().toISOString().slice(0, 10) >= d.start_date) {
+          sql = `INSERT INTO archive (name, surname, patronym, passport, number, start_date, end_date, price)
+               VALUES(?, ?, ?, ?, ?, ?, ?, ?)`;
+          database.run(
+            sql,
+            [
+              d.name,
+              d.surname,
+              d.patronym,
+              d.passport,
+              d.number,
+              d.start_date,
+              d.end_date,
+              d.total
+            ],
+            err => {
+              if (err) {
+                res.status(500).json({ error: err.message });
+                return err;
+              }
 
+              // Send success if all field entered
+              res.status(200).send({ result: "ok" });
+            }
+          );
+        } else {
           // Send success if all field entered
-          res.status(200).send({result: "ok"});
-        })
-      })
-    })
-  })
+          res.status(200).send({ result: "ok" });
+        }
+      });
+    });
+  });
 
   // Close database
   database.close();
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'))
-})
-
-server = app.listen(port, () => {
-  console.log(`Listening on port ${port}.`);
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "build", "index.html"));
 });
 
-process.on("SIGINT", () => {
-  console.log(`Stop listening on port ${port}.`);
-  server.close();
+app.listen(port, () => {
+  console.log(`Listening on port ${port}.`);
 });
