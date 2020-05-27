@@ -2,13 +2,8 @@
 
 # dependencies
 /node_modules
-/public
-/src
 /.pnp
 .pnp.js
-package.json
-README.md
-yarn.lock
 
 # testing
 /coverage
