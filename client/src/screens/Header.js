@@ -7,7 +7,8 @@ import {
   TeamOutlined,
   ClockCircleOutlined,
   AppstoreOutlined,
-  CheckSquareOutlined
+  CheckSquareOutlined,
+  AppstoreAddOutlined
 } from "@ant-design/icons";
 
 class Header extends Component {
@@ -46,6 +47,9 @@ class Header extends Component {
           </Menu.Item>
           <Menu.Item key="create" icon={<PlusSquareOutlined />}>
             Новое заселение
+          </Menu.Item>
+          <Menu.Item key="add-services" icon={<AppstoreAddOutlined />}>
+            Добавление услуг
           </Menu.Item>
           <Menu.Item key="check" icon={<CheckSquareOutlined />}>
             Проверка брони

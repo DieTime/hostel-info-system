@@ -35,7 +35,7 @@ class Guests extends Component {
         key: "number",
       },
       {
-        title: "Количество",
+        title: "Постояльцев",
         dataIndex: "persons",
         key: "persons",
       },
@@ -73,19 +73,19 @@ class Guests extends Component {
         render: val => new Date(val).toLocaleDateString()
       },
       {
-        title: "Цена за номер",
+        title: "Стоимость за номер",
         dataIndex: "number_price",
         key: "number_price",
         render: val => val + " р.",
       },
       {
-        title: "Цена за услуги",
+        title: "Стоимость за услуги",
         dataIndex: "service_price",
         key: "service_price",
         render: val => val + " р.",
       },
       {
-        title: "Стоимость проживания",
+        title: "Итоговая стоимость",
         dataIndex: "total",
         key: "total",
         render: val => val + " р.",

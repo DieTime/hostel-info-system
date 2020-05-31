@@ -7,6 +7,7 @@ import Archive from "../screens/Archive";
 import Guests from "../screens/Guests";
 import Reservation from "../screens/Reservation";
 import TodayTomorrow from "../screens/TodayTomorrow";
+import AddServices from "../screens/AddServices";
 
 function Router({window}) {
     if (window === 'empty') return <Empty />
@@ -16,6 +17,7 @@ function Router({window}) {
     if (window === 'guests') return <Guests />
     if (window === 'reservation') return <Reservation />
     if (window === 'today-tomorrow') return <TodayTomorrow />
+    if (window === 'add-services') return <AddServices />
 }
 
 export default Router;

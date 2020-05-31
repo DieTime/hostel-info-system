@@ -119,9 +119,12 @@ app.get("/empty", (req, res) => {
 
 // Get free apartments in a certain date range
 // and with a certain number of people
-app.get("/empty/:from/:to/:cap", (req, res) => {
+app.get("/empty/:from/:to/:cap/:class", (req, res) => {
   // Open database
   database = new sqlite3.Database(db_name);
+
+  const cl = req.params["class"] !== "null" ? `${req.params["class"]}` : null;
+  const cap = req.params["cap"] !== "null" ? req.params["cap"] : null;
 
   const sql = `SELECT * FROM 
                (
@@ -130,7 +133,7 @@ app.get("/empty/:from/:to/:cap", (req, res) => {
                           (? < start_date OR ? > end_date) as in_range
                    FROM apartments a
                      LEFT JOIN orders o ON a.id = o.apartments_id
-                   WHERE a.capacity >= ?
+                   WHERE (a.capacity >= ? OR ? IS NULL) AND (a.class = ? OR ? IS NULL)
                    ORDER BY in_range
                )
                GROUP BY id HAVING (in_range IS NULL OR in_range = 1)`;
@@ -138,7 +141,7 @@ app.get("/empty/:from/:to/:cap", (req, res) => {
   // Send sql query with params []
   database.all(
     sql,
-    [req.params["to"], req.params["from"], req.params["cap"]],
+    [req.params["to"], req.params["from"], cap, cap, cl, cl],
     (err, rows) => {
       if (err) {
         res.status(400).json({ error: err.message });
@@ -498,6 +501,48 @@ app.post("/add/archive", (req, res) => {
       res.status(200).send({ result: "ok" });
     }
   );
+
+  // Close database
+  database.close();
+});
+
+// Add services for client
+app.post("/add/services", (req, res) => {
+  // Open database
+  database = new sqlite3.Database(db_name);
+
+  req.body.services.map((item, index) => {
+    // If client select service
+    if (item.state && item.dates.length > 0) {
+      let start = new Date(item.dates[0]); // Start date
+      let end = new Date(item.dates[1]); // End date
+
+      // Add all days with this service in order_service table
+      while (start <= end) {
+        let sql = `INSERT INTO order_service (order_id, service_id, count, date) VALUES(?,?,?,?)`;
+        database.run(
+          sql,
+          [
+            req.body.order_id,
+            index + 1,
+            item.num,
+            start.toISOString().slice(0, 10)
+          ],
+          err => {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return err;
+            }
+          }
+        );
+        // Increment date
+        start.setDate(start.getDate() + 1);
+      }
+    }
+  });
+
+  // Send success if all field entered
+  res.status(200).send({ result: "ok" });
 
   // Close database
   database.close();
