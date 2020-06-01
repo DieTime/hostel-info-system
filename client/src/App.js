@@ -6,7 +6,7 @@ import Router from "./components/Router";
 import "antd/dist/antd.css";
 
 function App() {
-  const [window, setWindow] = useState("create");
+  const [window, setWindow] = useState("guests");
 
   return (
     <div style={{ display: "flex" }}>
